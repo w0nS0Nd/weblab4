@@ -1,0 +1,90 @@
+info:
+  title: OAuth2 Authorization Flows with Keycloak
+  version: 1.0.0
+  description: |
+    У цьому OpenAPI-файлі продемонстровано чотири основні потоки авторизації OAuth2:
+
+    1. Authorization Code Flow  
+       Використовується у веб-додатках, де клієнт отримує код авторизації через браузер 
+       і обмінює його на токен доступу. Забезпечує високий рівень безпеки.
+
+    2. Password Flow  
+       Підходить для мобільних застосунків або CLI, де користувач вводить логін/пароль
+       безпосередньо у додатку. Менш безпечний, тому застосовується лише у довірених клієнтах.
+
+    3. Client Credentials Flow  
+       Використовується для взаємодії між сервісами (machine-to-machine). 
+       Клієнт автентифікується від імені себе, а не користувача.
+
+    4. Implicit Flow  
+       Призначений для SPA-додатків, де токен повертається безпосередньо у браузер.
+       Вважається застарілим і малобезпечним, рекомендовано замінювати Authorization Code Flow.
+
+
+servers:
+  - url: http://localhost:8000/api
+  - url: http://localhost:3000
+
+components:
+  securitySchemes:
+    OAuth2AuthCode:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8000/api/auth
+          tokenUrl: http://localhost:8000/api/token
+          scopes:
+            openid: Доступ до базової інформації користувача
+            email: Доступ до email
+    OAuth2Password:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: http://localhost:8000/api/token
+          scopes:
+            openid: Доступ до базової інформації користувача
+    OAuth2ClientCredentials:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: http://localhost:8000/api/token
+          scopes:
+            email: Доступ до email сервісу
+    OAuth2Implicit:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: http://localhost:8000/api/auth
+          scopes:
+            openid: Доступ до профілю користувача
+
+paths:
+  /profile:
+    get:
+      summary: Отримати профіль користувача
+      description: >
+        Повертає основну інформацію користувача. Потрібна автентифікація.
+      security:
+        - OAuth2AuthCode: [openid]
+        - OAuth2Password: [openid]
+        - OAuth2ClientCredentials: [email]
+        - OAuth2Implicit: [openid]
+      responses:
+        '200':
+          description: Дані профілю
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    example: user@example.com
+                  name:
+                    type: string
+                    example: Test User
+                  sub:
+                    type: string
+                    example: 123e4567-e89b-12d3-a456-426614174000
+        '401':
+          description: Неавторизований запит
